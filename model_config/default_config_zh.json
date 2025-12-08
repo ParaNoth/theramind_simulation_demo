@@ -1,0 +1,39 @@
+{
+  "reaction_classifier": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/reaction_classifier/reaction_classifier_zh.txt"
+  },
+  "resistance_detection": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/resistance_detection/resistance_detection_zh.txt"
+  },
+  "strategy_selection": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/strategy_selection/strategy_selection_zh.txt"
+  },
+  "phase_selection": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/phase_selection/phase_selection_zh.txt"
+  },
+  "memory_retrieve": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/memory_retrieve/memory_retrieve_zh.txt"
+  },
+  "counselor": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/counselor/counselor_zh.txt"
+  },
+  "end_detection": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/end_detection/end_detection_zh.txt"
+  },
+  "therapy_selection": {
+    "model": "deepseek/deepseek-chat-v3-0324",
+    "prompt_path": "prompts/therapy_selection/therapy_selection_zh.txt"
+  },
+  "dialog_labels": {
+    "user_label": "来访者",
+    "assistant_label": "咨询师"
+  }
+}
+

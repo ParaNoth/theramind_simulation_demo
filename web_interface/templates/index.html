@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheraMind 心理咨询系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部控制栏 -->
+        <div class="header">
+            <h1>TheraMind 心理咨询系统</h1>
+            <div class="controls">
+                <button id="initBtn" class="btn btn-primary" data-i18n="newSession">新建会话</button>
+                <button id="loadBtn" class="btn btn-secondary" data-i18n="loadArchive">加载存档</button>
+                <button id="langToggle" class="btn btn-lang" title="Switch Language">中/EN</button>
+                <label class="switch">
+                    <input type="checkbox" id="debugToggle">
+                    <span class="slider"></span>
+                    <span class="switch-label" data-i18n="debugMode">Debug 模式</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 左侧：对话区域 -->
+            <div class="chat-section">
+                <!-- 当前会话历史记录 -->
+                <div class="chat-history" id="currentSessionHistory">
+                    <div class="chat-history-header">
+                        <h3 id="sessionTitle" data-i18n="currentSession">当前会话</h3>
+                        <button id="backToCurrentBtn" class="btn btn-back" style="display: none;" data-i18n="backToCurrent">回到当前会话</button>
+                    </div>
+                    <div class="history-content" id="currentSessionContent">
+                        <p class="empty-message" data-i18n="pleaseInit">请先初始化或加载一个会话</p>
+                    </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="input-section">
+                    <textarea 
+                        id="userInput" 
+                        data-i18n-placeholder="inputPlaceholder"
+                        placeholder="请输入您的问题或感受..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendBtn" class="btn btn-send" disabled data-i18n="send">发送</button>
+                </div>
+            </div>
+
+            <!-- 右侧：历史记录和 Debug 面板 -->
+            <div class="sidebar">
+                <!-- 过去会话历史记录 -->
+                <div class="past-sessions" id="pastSessions">
+                    <h3 data-i18n="pastSessions">历史会话</h3>
+                    <div class="sessions-content" id="sessionsContent">
+                        <p class="empty-message" data-i18n="noPastSessions">暂无历史会话</p>
+                    </div>
+                </div>
+
+                <!-- Debug 面板 -->
+                <div class="debug-panel" id="debugPanel" style="display: none;">
+                    <h3 data-i18n="debugInfo">Debug 信息</h3>
+                    <div class="debug-content" id="debugContent">
+                        <p class="empty-message" data-i18n="waitingForDialog">等待对话开始...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新建会话模态框 -->
+        <div id="initModal" class="modal">
+            <div class="modal-content">
+                <span class="close" data-modal="initModal">&times;</span>
+                <h2 data-i18n="newSession">新建会话</h2>
+                <div class="modal-body">
+                    <div class="config-selection">
+                        <label for="initConfigSelect" data-i18n="selectConfig">选择配置文件：</label>
+                        <select id="initConfigSelect" class="config-select">
+                            <option value="" data-i18n="useDefaultConfig">使用默认配置</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="confirmInitBtn" class="btn btn-primary" data-i18n="confirm">确认</button>
+                    <button class="btn btn-secondary" data-modal="initModal" data-i18n="cancel">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载存档模态框 -->
+        <div id="loadModal" class="modal">
+            <div class="modal-content">
+                <span class="close" data-modal="loadModal">&times;</span>
+                <h2 data-i18n="selectArchiveFile">选择存档文件</h2>
+                <div class="modal-body">
+                    <div class="config-selection">
+                        <label for="loadConfigSelect" data-i18n="selectConfig">选择配置文件：</label>
+                        <select id="loadConfigSelect" class="config-select">
+                            <option value="" data-i18n="useDefaultConfig">使用默认配置</option>
+                        </select>
+                    </div>
+                    <div id="fileList" class="file-list">
+                        <p data-i18n="loading">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+

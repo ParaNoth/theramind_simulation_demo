@@ -1,0 +1,39 @@
+{
+  "reaction_classifier": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/reaction_classifier/reaction_classifier_en.txt"
+  },
+  "resistance_detection": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/resistance_detection/resistance_detection_en.txt"
+  },
+  "strategy_selection": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/strategy_selection/strategy_selection_en.txt"
+  },
+  "phase_selection": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/phase_selection/phase_selection_en.txt"
+  },
+  "memory_retrieve": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/memory_retrieve/memory_retrieve_en.txt"
+  },
+  "counselor": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/counselor/counselor_en.txt"
+  },
+  "end_detection": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/end_detection/end_detection_en.txt"
+  },
+  "therapy_selection": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_path": "prompts/therapy_selection/therapy_selection_en.txt"
+  },
+  "dialog_labels": {
+    "user_label": "Patient",
+    "assistant_label": "Therapist"
+  }
+}
+
