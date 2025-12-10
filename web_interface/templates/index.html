@@ -10,7 +10,13 @@
     <div class="container">
         <!-- 顶部控制栏 -->
         <div class="header">
-            <h1>TheraMind 心理咨询系统</h1>
+            <div class="header-left">
+                <h1>TheraMind 心理咨询系统</h1>
+                <div id="configInfo" class="config-info" style="display: none;">
+                    <span class="config-label" data-i18n="configFile">配置文件：</span>
+                    <span id="configFileName" class="config-name"></span>
+                </div>
+            </div>
             <div class="controls">
                 <button id="initBtn" class="btn btn-primary" data-i18n="newSession">新建会话</button>
                 <button id="loadBtn" class="btn btn-secondary" data-i18n="loadArchive">加载存档</button>

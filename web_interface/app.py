@@ -324,7 +324,8 @@ def get_status():
         'file_path': current_manager.get_all_dialogs_file(),
         'current_therapy': current_manager.get_current_therapy(),
         'session_count': len(all_dialogs),
-        'all_dialogs': all_dialogs
+        'all_dialogs': all_dialogs,
+        'config_path': current_manager.config_path
     })
 
 

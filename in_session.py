@@ -46,10 +46,11 @@ class InSession:
             all_dialogs: 所有历史对话记录（可选，默认为空列表）
                         格式：List[Dict]，每个 Dict 代表一个 session 的 log_dict，包含：
                         - dialogue: List[Dict[str, str]] - 此 session 的聊天记录，格式为 [{'role': 'user/assistant', 'content': 'content'}, ...]
-                        - reaction_results: List[Dict] - 每一轮的 reaction_result 结果列表
-                        - resistance_results: List[bool] - 每一轮的 resistance 结果列表
-                        - strategy_results: List[Dict] - 每一轮 strategy_result 的结果列表
-                        - memory_results: List[str] - 每一轮 memory_result 的列表
+                        - reaction_results: List[Dict] - 每一轮的 reaction_result 结果列表（包含 model 字段）
+                        - resistance_results: List[Dict] - 每一轮的 resistance 结果列表（格式：{"resistance": bool, "model": str}）
+                        - strategy_results: List[Dict] - 每一轮 strategy_result 的结果列表（包含 model 字段）
+                        - memory_results: List[Dict] - 每一轮 memory_result 的列表（格式：{"content": str, "model": str}）
+                        - current_stage_results: List[Dict] - 每一轮 current_stage 的结果列表（格式：{"content": str, "model": str}）
                         每个 Dict 代表一个 session 的历史记录，按时间从早到晚排列
                         当前 session 的记录为 all_dialogs[-1]
         """
@@ -70,11 +71,16 @@ class InSession:
             # 已经是 List[Dict] 格式
             self.all_dialogs: List[Dict] = all_dialogs
         
-        # 检查 self.all_dialogs 最后一个元素是否是空 session，如果不是则添加一个
+        # 检查 self.all_dialogs 最后一个元素的状态
+        # 只有当最后一个 session 已结束（is_ended=True）时，才创建新的 session
         if not self.all_dialogs:
             self.all_dialogs = [self._create_empty_session_log()]
-        elif not self._is_empty_session(self.all_dialogs[-1]):
-            self.all_dialogs.append(self._create_empty_session_log())
+        else:
+            last_session = self.all_dialogs[-1]
+            is_ended = last_session.get("is_ended", False)
+            # 只有当最后一个 session 已结束时，才创建新的 session
+            if is_ended:
+                self.all_dialogs.append(self._create_empty_session_log())
         
         self.session_strategy_memory = []  # 本次会话中已使用的策略记录列表
         
@@ -327,8 +333,12 @@ class InSession:
         primary_emotion = reaction_result.get("primary_emotion", "")
         emotional_intensity = reaction_result.get("emotional_intensity", 0.0)
         
-        # 存储 reaction_result 到当前 session
-        current_session["reaction_results"].append(reaction_result.copy())
+        # 存储 reaction_result 到当前 session（添加模型名称）
+        reaction_result_with_model = reaction_result.copy()
+        reaction_model = getattr(self.reaction_classifier, 'model', None)
+        if reaction_model:
+            reaction_result_with_model["model"] = reaction_model
+        current_session["reaction_results"].append(reaction_result_with_model)
         
         resistance = self.resistance_detector.detect(
             utter=patient_input,
@@ -341,8 +351,12 @@ class InSession:
             **kwargs
         )
         
-        # 存储 resistance 结果到当前 session
-        current_session["resistance_results"].append(resistance)
+        # 存储 resistance 结果到当前 session（改为 Dict 格式，包含模型名称）
+        resistance_model = getattr(self.resistance_detector, 'model', None)
+        resistance_entry = {"resistance": resistance}
+        if resistance_model:
+            resistance_entry["model"] = resistance_model
+        current_session["resistance_results"].append(resistance_entry)
         
         # 步骤 2: 策略选择
         strategy_result = self.strategy_selector.select_strategy(
@@ -363,8 +377,12 @@ class InSession:
         strategy_name = strategy_result.get("strategy", "")
         strategy_text = strategy_result.get("strategy_text", "")
         
-        # 存储 strategy_result 到当前 session
-        current_session["strategy_results"].append(strategy_result.copy())
+        # 存储 strategy_result 到当前 session（添加模型名称）
+        strategy_result_with_model = strategy_result.copy()
+        strategy_model = getattr(self.strategy_selector, 'model', None)
+        if strategy_model:
+            strategy_result_with_model["model"] = strategy_model
+        current_session["strategy_results"].append(strategy_result_with_model)
         
         # 更新策略记忆（将新策略添加到列表中）
         if strategy_name and strategy_name not in self.session_strategy_memory:
@@ -384,8 +402,12 @@ class InSession:
             **kwargs
         )
         
-        # 存储 current_stage 到当前 session
-        current_session["current_stage_results"].append(current_stage)
+        # 存储 current_stage 到当前 session（改为 Dict 格式，包含模型名称）
+        phase_model = getattr(self.phase_selector, 'model', None)
+        current_stage_entry = {"content": current_stage}
+        if phase_model:
+            current_stage_entry["model"] = phase_model
+        current_session["current_stage_results"].append(current_stage_entry)
         
         # 步骤 4: 记忆检索
         memory_result = self.memory_retriever.retrieve(
@@ -400,8 +422,12 @@ class InSession:
             **kwargs
         )
         
-        # 存储 memory_result 到当前 session
-        current_session["memory_results"].append(memory_result)
+        # 存储 memory_result 到当前 session（改为 Dict 格式，包含模型名称）
+        memory_model = getattr(self.memory_retriever, 'model', None)
+        memory_entry = {"content": memory_result}
+        if memory_model:
+            memory_entry["model"] = memory_model
+        current_session["memory_results"].append(memory_entry)
         
         # 步骤 5: 生成咨询师回复
         counselor_result = self.counselor_agent.generate_response(
@@ -438,7 +464,9 @@ class InSession:
         )
         
         # 步骤 7: 更新历史记录（包括 dialogue）
-        self._update_dialogs(patient_input, counselor_response)
+        # 获取 counselor 模型名称
+        counselor_model = getattr(self.counselor_agent, 'model', None)
+        self._update_dialogs(patient_input, counselor_response, model_name=counselor_model)
         
         # 返回所有结果
         return {
@@ -459,13 +487,14 @@ class InSession:
             "all_results": counselor_result  # 包含 counselor_agent 返回的所有字段
         }
     
-    def _update_dialogs(self, patient_input: str, counselor_response: str):
+    def _update_dialogs(self, patient_input: str, counselor_response: str, model_name: Optional[str] = None):
         """
         更新历史对话记录（dialogue 部分）
         
         Args:
             patient_input: 用户输入
             counselor_response: 咨询师回复
+            model_name: 生成回复的模型名称（可选）
         """
         # 确保 all_dialogs 不为空
         if not self.all_dialogs:
@@ -475,8 +504,13 @@ class InSession:
         current_session = self.all_dialogs[-1]
         
         # 添加用户输入和咨询师回复到当前 session 的 dialogue
+        # 用户输入不需要模型名称
         current_session["dialogue"].append({"role": "user", "content": patient_input})
-        current_session["dialogue"].append({"role": "assistant", "content": counselor_response})
+        # 咨询师回复包含模型名称
+        assistant_entry = {"role": "assistant", "content": counselor_response}
+        if model_name:
+            assistant_entry["model"] = model_name
+        current_session["dialogue"].append(assistant_entry)
     
     def update_therapy(self, new_therapy: str):
         """
@@ -494,11 +528,12 @@ class InSession:
         Returns:
             所有历史对话记录，格式为 List[Dict]
             每个 Dict 代表一个 session 的 log_dict，包含：
-            - dialogue: List[Dict[str, str]] - 此 session 的聊天记录
-            - reaction_results: List[Dict] - 每一轮的 reaction_result 结果列表
-            - resistance_results: List[bool] - 每一轮的 resistance 结果列表
-            - strategy_results: List[Dict] - 每一轮 strategy_result 的结果列表
-            - memory_results: List[str] - 每一轮 memory_result 的列表
+            - dialogue: List[Dict[str, str]] - 此 session 的聊天记录（assistant 条目包含 model 字段）
+            - reaction_results: List[Dict] - 每一轮的 reaction_result 结果列表（包含 model 字段）
+            - resistance_results: List[Dict] - 每一轮的 resistance 结果列表（格式：{"resistance": bool, "model": str}）
+            - strategy_results: List[Dict] - 每一轮 strategy_result 的结果列表（包含 model 字段）
+            - memory_results: List[Dict] - 每一轮 memory_result 的列表（格式：{"content": str, "model": str}）
+            - current_stage_results: List[Dict] - 每一轮 current_stage 的结果列表（格式：{"content": str, "model": str}）
             每个 Dict 代表一个 session 的历史记录，按时间从早到晚排列
             当前 session 的记录为 all_dialogs[-1]
         """

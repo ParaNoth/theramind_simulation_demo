@@ -5,6 +5,7 @@ let allDialogs = [];
 let currentTherapy = null;
 let viewingSessionIndex = null; // 当前查看的会话索引，null 表示查看当前会话
 let currentLang = localStorage.getItem('ui_language') || 'zh'; // 当前界面语言
+let currentConfigPath = null; // 当前配置文件路径
 
 // DOM 元素
 const initBtn = document.getElementById('initBtn');
@@ -25,6 +26,8 @@ const confirmInitBtn = document.getElementById('confirmInitBtn');
 const sessionTitle = document.getElementById('sessionTitle');
 const backToCurrentBtn = document.getElementById('backToCurrentBtn');
 const langToggle = document.getElementById('langToggle');
+const configInfo = document.getElementById('configInfo');
+const configFileName = document.getElementById('configFileName');
 
 // API 基础 URL
 const API_BASE = '';
@@ -60,7 +63,8 @@ const i18n = {
         noDialog: '暂无对话记录',
         currentSessionEmpty: '当前会话暂无对话',
         sessionEmpty: '该会话暂无对话',
-        sessionNotExist: '会话不存在'
+        sessionNotExist: '会话不存在',
+        configFile: '配置文件：'
     },
     en: {
         newSession: 'New Session',
@@ -91,7 +95,8 @@ const i18n = {
         noDialog: 'No dialog records',
         currentSessionEmpty: 'Current session has no dialog',
         sessionEmpty: 'This session has no dialog',
-        sessionNotExist: 'Session does not exist'
+        sessionNotExist: 'Session does not exist',
+        configFile: 'Config File:'
     }
 };
 
@@ -215,6 +220,14 @@ function updateDynamicTexts() {
         sessionTitle.textContent = texts.currentSession;
     }
     
+    // 更新config文件标签
+    if (configInfo) {
+        const configLabel = configInfo.querySelector('.config-label');
+        if (configLabel) {
+            configLabel.textContent = texts.configFile;
+        }
+    }
+    
     // 更新空消息
     document.querySelectorAll('.empty-message').forEach(el => {
         if (el.textContent.includes('请先初始化') || el.textContent.includes('Please initialize')) {
@@ -235,6 +248,30 @@ function updateDynamicTexts() {
     });
 }
 
+// 更新config文件名称显示
+function updateConfigFileName(configPath) {
+    if (!configPath) {
+        if (configInfo) {
+            configInfo.style.display = 'none';
+        }
+        currentConfigPath = null;
+        return;
+    }
+    
+    currentConfigPath = configPath;
+    
+    // 从路径中提取文件名
+    const fileName = configPath.split(/[/\\]/).pop() || configPath;
+    
+    if (configFileName) {
+        configFileName.textContent = fileName;
+    }
+    
+    if (configInfo) {
+        configInfo.style.display = 'flex';
+    }
+}
+
 // 检查状态
 async function checkStatus() {
     try {
@@ -245,7 +282,16 @@ async function checkStatus() {
             isInitialized = true;
             allDialogs = data.all_dialogs || [];
             currentTherapy = data.current_therapy || null;
-            viewingSessionIndex = null; // 重置查看状态
+            // 更新config文件名称显示
+            if (data.config_path) {
+                updateConfigFileName(data.config_path);
+            }
+            // 页面加载时，自动显示最后一个会话（当前会话）
+            if (allDialogs && allDialogs.length > 0) {
+                viewingSessionIndex = allDialogs.length - 1; // 显示最后一个会话
+            } else {
+                viewingSessionIndex = null;
+            }
             // 更新 debug 信息以显示当前疗法
             if (currentTherapy) {
                 currentDebugInfo = { current_therapy: currentTherapy };
@@ -253,6 +299,7 @@ async function checkStatus() {
                     updateDebugPanel(currentDebugInfo);
                 }
             }
+            // 确保渲染当前会话的聊天记录
             updateUI();
             sendBtn.disabled = false;
         }
@@ -287,7 +334,16 @@ async function confirmInitSession() {
             isInitialized = true;
             allDialogs = data.all_dialogs || [];
             currentTherapy = data.current_therapy || null;
-            viewingSessionIndex = null; // 重置查看状态
+            // 更新config文件名称显示
+            if (data.config_path) {
+                updateConfigFileName(data.config_path);
+            }
+            // 新建会话后，自动显示最后一个会话（当前会话）
+            if (allDialogs && allDialogs.length > 0) {
+                viewingSessionIndex = allDialogs.length - 1; // 显示最后一个会话
+            } else {
+                viewingSessionIndex = null;
+            }
             // 更新 debug 信息以显示当前疗法
             if (currentTherapy) {
                 currentDebugInfo = { current_therapy: currentTherapy };
@@ -426,22 +482,15 @@ async function loadFile(filePath) {
             isInitialized = true;
             allDialogs = data.all_dialogs || [];
             currentTherapy = data.current_therapy || null;
-            viewingSessionIndex = null; // 重置查看状态
-            
-            // 检查最后一个 dialog 的 is_ended 状态
-            if (allDialogs.length > 0) {
-                const lastDialog = allDialogs[allDialogs.length - 1];
-                const isEnded = lastDialog.is_ended || false;
-                
-                // 如果最后一个 dialog 已结束，后端应该已经创建了新的 dialog
-                // 如果未结束，则继续在当前 dialog 下对话
-                if (isEnded && allDialogs.length > 1) {
-                    // 最后一个 dialog 已结束，应该使用新创建的 dialog（最后一个）
-                    console.log('最后一个 dialog 已结束，使用新创建的 dialog');
-                } else if (!isEnded) {
-                    // 最后一个 dialog 未结束，继续在当前 dialog 下对话
-                    console.log('最后一个 dialog 未结束，继续在当前 dialog 下对话');
-                }
+            // 更新config文件名称显示
+            if (data.config_path) {
+                updateConfigFileName(data.config_path);
+            }
+            // 加载会话后，自动显示最后一个会话（当前会话）
+            if (allDialogs && allDialogs.length > 0) {
+                viewingSessionIndex = allDialogs.length - 1; // 显示最后一个会话
+            } else {
+                viewingSessionIndex = null;
             }
             
             // 更新 debug 信息以显示当前疗法
@@ -451,6 +500,7 @@ async function loadFile(filePath) {
                     updateDebugPanel(currentDebugInfo);
                 }
             }
+            // 更新 UI（包括渲染历史会话列表）
             updateUI();
             sendBtn.disabled = false;
             loadModal.style.display = 'none';
@@ -503,8 +553,10 @@ async function sendMessage() {
             // 更新对话记录
             allDialogs = data.all_dialogs || [];
             
-            // 如果正在查看历史会话，自动回到当前会话
-            if (viewingSessionIndex !== null) {
+            // 如果正在查看历史会话，自动回到最后一个会话（当前会话）
+            if (allDialogs && allDialogs.length > 0) {
+                viewingSessionIndex = allDialogs.length - 1;
+            } else {
                 viewingSessionIndex = null;
             }
             
@@ -578,48 +630,23 @@ function updateUI() {
 
 // 更新当前会话显示
 function updateCurrentSession() {
-    // 如果正在查看历史会话，显示历史会话内容
-    if (viewingSessionIndex !== null) {
-        displaySession(viewingSessionIndex);
-        return;
-    }
-    
-    // 否则显示当前会话
-    displayCurrentSession();
-}
-
-// 显示当前会话
-function displayCurrentSession() {
-    const texts = i18n[currentLang];
+    // 如果allDialogs为空，显示空消息
     if (!allDialogs || allDialogs.length === 0) {
+        const texts = i18n[currentLang];
         currentSessionContent.innerHTML = `<p class="empty-message">${texts.noDialog}</p>`;
         sessionTitle.textContent = texts.currentSession;
         backToCurrentBtn.style.display = 'none';
+        viewingSessionIndex = null;
         return;
     }
     
-    // 获取最后一个 dialog（当前正在进行的 dialog）
-    // 后端已经处理了逻辑：如果最后一个 dialog 已结束，会自动创建新的 dialog
-    // 所以这里直接使用最后一个 dialog 即可
-    const currentSession = allDialogs[allDialogs.length - 1];
-    const dialogue = currentSession.dialogue || [];
-    const isEnded = currentSession.is_ended || false;
-    
-    // 如果当前 dialog 已结束，理论上不应该发生（后端应该已经创建了新 dialog）
-    // 但为了安全起见，仍然显示它
-    if (isEnded) {
-        console.warn('当前 dialog 已结束，但仍在显示。这可能表示后端未正确创建新 dialog。');
+    // 如果viewingSessionIndex为null或无效，自动设置为最后一个会话
+    if (viewingSessionIndex === null || viewingSessionIndex >= allDialogs.length) {
+        viewingSessionIndex = allDialogs.length - 1;
     }
     
-    sessionTitle.textContent = texts.currentSession;
-    backToCurrentBtn.style.display = 'none';
-    
-    if (dialogue.length === 0) {
-        currentSessionContent.innerHTML = `<p class="empty-message">${texts.currentSessionEmpty}</p>`;
-        return;
-    }
-    
-    renderDialogue(dialogue);
+    // 显示指定的会话
+    displaySession(viewingSessionIndex);
 }
 
 // 显示指定索引的会话
@@ -633,9 +660,19 @@ function displaySession(sessionIndex) {
     const session = allDialogs[sessionIndex];
     const dialogue = session.dialogue || [];
     const therapy = session.therapy || texts.unknownTherapy;
+    const isEnded = session.is_ended || false;
+    const lastIndex = allDialogs.length - 1;
     
-    sessionTitle.textContent = `${texts.session} ${sessionIndex + 1} - ${therapy}`;
-    backToCurrentBtn.style.display = 'inline-block';
+    // 显示会话标题，标记为[进行中]或[已结束]
+    const statusText = isEnded ? (currentLang === 'zh' ? ' [已结束]' : ' [Ended]') : (currentLang === 'zh' ? ' [进行中]' : ' [In Progress]');
+    sessionTitle.textContent = `${texts.session} ${sessionIndex + 1} - ${therapy}${statusText}`;
+    
+    // 如果当前查看的不是最后一个会话，显示"回到当前会话"按钮
+    if (sessionIndex !== lastIndex) {
+        backToCurrentBtn.style.display = 'inline-block';
+    } else {
+        backToCurrentBtn.style.display = 'none';
+    }
     
     if (dialogue.length === 0) {
         currentSessionContent.innerHTML = `<p class="empty-message">${texts.sessionEmpty}</p>`;
@@ -672,10 +709,16 @@ function renderDialogue(dialogue) {
     currentSessionContent.scrollTop = currentSessionContent.scrollHeight;
 }
 
-// 回到当前会话
+// 回到当前会话（跳转到最后一个会话，即标记为[进行中]的会话）
 function backToCurrentSession() {
-    viewingSessionIndex = null;
-    displayCurrentSession();
+    if (!allDialogs || allDialogs.length === 0) {
+        viewingSessionIndex = null;
+    } else {
+        // 跳转到最后一个会话
+        viewingSessionIndex = allDialogs.length - 1;
+    }
+    // 更新显示
+    updateCurrentSession();
 }
 
 // 查看历史会话
@@ -687,16 +730,16 @@ function viewHistorySession(sessionIndex) {
 // 更新历史会话显示
 function updatePastSessions() {
     const texts = i18n[currentLang];
-    if (!allDialogs || allDialogs.length <= 1) {
+    if (!allDialogs || allDialogs.length === 0) {
         sessionsContent.innerHTML = `<p class="empty-message">${texts.noPastSessions}</p>`;
         return;
     }
     
     sessionsContent.innerHTML = '';
     
-    // 显示除最后一个（当前会话）之外的所有会话
+    // 显示所有会话，包括最后一个（当前会话）
     // 同时显示已结束的会话（is_ended = true）和未结束的会话（is_ended = false）
-    for (let i = 0; i < allDialogs.length - 1; i++) {
+    for (let i = 0; i < allDialogs.length; i++) {
         const session = allDialogs[i];
         const isEnded = session.is_ended || false;
         const sessionItem = document.createElement('div');
